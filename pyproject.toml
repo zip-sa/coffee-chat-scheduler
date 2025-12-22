@@ -1,0 +1,15 @@
+[tool.poetry]
+name = "coffee-chat-sheduler"
+version = "0.1.0"
+description = ""
+authors = ["zip-sa <tmddn0505@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "3.12.4"
+sqlmodel = "^0.0.27"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
