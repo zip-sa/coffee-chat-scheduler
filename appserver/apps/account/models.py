@@ -6,7 +6,7 @@ from sqlalchemy_utc import UtcDateTime
 
 
 class User(SQLModel, table=True):
-    __tablename__ = "users"
+    __tablename__ = "users" # type: ignore[arg-type]
     __table_args__ = (
         UniqueConstraint("email", name="uq_email"),
     )
@@ -38,8 +38,9 @@ class User(SQLModel, table=True):
         },
     )
 
+
 class OAuthAccount(SQLModel, table=True):
-    __tablename__ = "oauth_accounts"
+    __tablename__ = "oauth_accounts" # type: ignore[arg-type]
     __table_args__ = (
         UniqueConstraint(
             "provider",
