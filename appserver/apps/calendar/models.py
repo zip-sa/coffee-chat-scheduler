@@ -12,12 +12,17 @@ class Calendar(SQLModel, table=True):
     __tablename__ = "calendars" # type: ignore[arg-type]
 
     id: int = Field(default=None, primary_key=True)
-    topics: list[str] = Field(sa_type=JSON().with_variant(JSONB(astext_type=Text()), "postgresql"), description="Topics for discussion with guests")
+    topics: list[str] = Field(
+        sa_type=JSON().with_variant(JSONB(astext_type=Text()), "postgresql"), 
+        description="Topics for discussion with guests")
     google_calendar_id: str = Field(max_length=1024, description="Google Calendar ID")
 
     host_id: int = Field(foreign_key="users.id", unique=True)
-    host: "User" = Relationship(back_populates="calendar")
-    
+    host: "User" = Relationship(
+        back_populates="calendar",
+        sa_relationship_kwargs={"uselist": False, "single_parent": True},
+    )
+
     created_at: AwareDatetime = Field(
         default=None,
         nullable=False,
