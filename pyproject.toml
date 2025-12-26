@@ -10,6 +10,8 @@ python = "3.12.4"
 sqlmodel = "^0.0.27"
 sqlalchemy-utc = "^0.14.0"
 aiosqlite = "^0.22.1"
+alembic = "^1.17.2"
+greenlet = "^3.3.0"
 
 
 [build-system]

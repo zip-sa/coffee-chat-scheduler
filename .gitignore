@@ -1,3 +1,9 @@
+# Local database files
+*.db
+*.sqlite
+*.sqlite3
+local.db
+
 .vscode/
 
 .venv/
