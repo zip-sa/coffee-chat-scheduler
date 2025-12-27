@@ -30,7 +30,7 @@ def get_range_days_of_month(year, month):
     result = [0] * start_weekday # fill leading days with 0 before the first day of the month
 
     # Append the days of the month
-    for day in range(1, last_day + 1):
-        result.append(day)
+    # for day in range(1, last_day + 1):
+    #   result.append(day)
 
-    return result
+    return result + list(range(1, last_day + 1))
