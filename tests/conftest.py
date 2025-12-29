@@ -45,3 +45,18 @@ def fastapi_app(db_session: AsyncSession):
 def client(fastapi_app: FastAPI):
     with TestClient(fastapi_app) as client:
         yield client
+
+
+@pytest.fixture()
+async def host_user(db_session: AsyncSession):
+    user = account_models.User(
+        username="test",
+        password="test",
+        email="test@example.com",
+        display_name="test",
+        is_host=True,
+    )
+    db_session.add(user)
+    await db_session.commit()
+    await db_session.flush()
+    return user
