@@ -4,14 +4,8 @@ from sqlmodel import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException, status
 from fastapi.testclient import TestClient
-from appserver.app import app
 from appserver.apps.account.endpoints import user_detail
-from appserver.db import create_async_engine, create_session
 from appserver.apps.account.models import User
-from appserver.apps.calendar.models import Calendar
-from sqlmodel import SQLModel
-
-import db
 
 
 """
