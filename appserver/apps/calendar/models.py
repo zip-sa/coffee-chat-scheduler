@@ -1,12 +1,14 @@
-from datetime import date, time, timezone, datetime
 from typing import TYPE_CHECKING
+from datetime import date, time, timezone, datetime
+
+from sqlalchemy.dialects.postgresql import JSONB
 from pydantic import AwareDatetime
 from sqlalchemy_utc import UtcDateTime
-from sqlmodel import SQLModel, Field, Relationship, Text, JSON, func, String, Column
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlmodel import SQLModel, Field, Relationship, Text, JSON, func
 
 if TYPE_CHECKING:
-    from appserver.apps.account.models import User
+    from apps.account.models import User
+
 
 class Calendar(SQLModel, table=True):
     __tablename__ = "calendars" # type: ignore[arg-type]
@@ -14,7 +16,9 @@ class Calendar(SQLModel, table=True):
     id: int = Field(default=None, primary_key=True)
     topics: list[str] = Field(
         sa_type=JSON().with_variant(JSONB(astext_type=Text()), "postgresql"), 
-        description="Topics for discussion with guests")
+        description="Topics for discussion with guests"
+        )
+    description: str = Field(sa_type=Text, description="Detailed description for guests")
     google_calendar_id: str = Field(max_length=1024, description="Google Calendar ID")
 
     host_id: int = Field(foreign_key="users.id", unique=True)
