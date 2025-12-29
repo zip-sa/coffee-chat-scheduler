@@ -1,9 +1,10 @@
+from typing import TYPE_CHECKING, Union
 from datetime import datetime, timezone
 from pydantic import AwareDatetime, EmailStr
 from sqlmodel import SQLModel, Field, Relationship, func
 from sqlalchemy import UniqueConstraint
 from sqlalchemy_utc import UtcDateTime
-from typing import TYPE_CHECKING
+
 
 if TYPE_CHECKING:
     from appserver.apps.calendar.models import Calendar, Booking
@@ -22,12 +23,10 @@ class User(SQLModel, table=True):
     is_host: bool = Field(default=False, description="Check Host")
 
     oauth_accounts: list["OAuthAccount"] = Relationship(back_populates="user")
-
-    calendar: "Calendar" = Relationship(
+    calendar: Union["Calendar", None] = Relationship(
         back_populates="host", 
         sa_relationship_kwargs={"uselist": False, "single_parent": True},
         )
-
     bookings: list["Booking"] = Relationship(back_populates="guest")
 
     created_at: AwareDatetime = Field(
