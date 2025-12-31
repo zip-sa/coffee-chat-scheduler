@@ -1,3 +1,8 @@
+import random
+import re
+import string
+from pydantic import model_validator
+
 from typing import TYPE_CHECKING, Union
 from datetime import datetime, timezone
 from pydantic import AwareDatetime, EmailStr
@@ -46,6 +51,13 @@ class User(SQLModel, table=True):
             "onupdate": lambda: datetime.now(timezone.utc),
         },
     )
+
+    @model_validator(mode="before")
+    @classmethod
+    def generate_display_name(cls, data: dict):
+        if not data.get("display_name"):
+            data["display_name"] = "".join(random.choices(string.ascii_letters + string.digits, k=8))
+        return data
 
 
 class OAuthAccount(SQLModel, table=True):
