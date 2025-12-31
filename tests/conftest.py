@@ -22,9 +22,11 @@ async def db_session():
         session_factory = create_session(conn)
         async with session_factory() as session:
             yield session
-        
-        await conn.run_sync(SQLModel.metadata.drop_all)
-        await conn.rollback()
+
+        try:
+            await conn.rollback()
+        except Exception:
+            pass  # Transaction already closed, that's ok
 
     await engine.dispose()
 
