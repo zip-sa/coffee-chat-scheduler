@@ -78,3 +78,15 @@ async def test_signup_if_email_exists(db_session: AsyncSession):
     payload["username"] = "test2"
     with pytest.raises(DuplicatedEmailError):
         await signup(payload, db_session)
+
+
+async def test_signup_no_display_name(client: TestClient, db_session: AsyncSession):
+    payload = {
+        "username": "test",
+        "email": "test@example.com",
+        "password": "test테스트1234",
+    }
+    user = await signup(payload, db_session)
+    assert isinstance(user.display_name, str)
+    assert len(user.display_name) == 8
+
