@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from appserver.apps.account.endpoints import signup
 from appserver.apps.account.models import User
 from fastapi.testclient import TestClient
-
+from appserver.apps.account.exceptions import DuplicatedUsernameError #DuplicatedEmailError
 
 async def test_signup_successfully(client: TestClient, db_session: AsyncSession):
     payload = {
@@ -35,7 +35,9 @@ async def test_signup_successfully(client: TestClient, db_session: AsyncSession)
 @pytest.mark.parametrize(
     "username",
     [
-        "01234567890123456789012345678901234567890123456789"        
+        "mynameiszipsamynameiszipsamynameiszipsamynameiszipsamynameiszipsa",
+        12345678,
+        "x"
     ]
 )
 
@@ -49,4 +51,16 @@ async def test_signup_invalid_username(client: TestClient, db_session: AsyncSess
     with pytest.raises(ValidationError) as exc:
         await signup(payload, db_session)
 
-    
+
+async def test_signup_if_id_exists(db_session: AsyncSession):
+    payload = {
+        "username": "test",
+        "email": "test@example.com",
+        "display_name": "test",
+        "password": "test테스트1234",
+    }
+    await signup(payload, db_session) 
+
+    payload["email"] = "test2@example.com"
+    with pytest.raises(ValidationError) as exc:
+        await signup(payload, db_session)
