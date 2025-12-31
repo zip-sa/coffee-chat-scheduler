@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException, status
 from sqlmodel import select, func, SQLModel
-from .exceptions import DuplicatedUsernameError
+from sqlalchemy.exc import IntegrityError
+from .exceptions import DuplicatedUsernameError, DuplicatedEmailError
 
 from appserver.db import DbSessionDep, create_async_engine, create_session
 from .models import User
@@ -29,5 +30,8 @@ async def signup(payload: dict, session: DbSessionDep) -> User:
     
     user = User.model_validate(payload)
     session.add(user)
-    await session.commit()
+    try:
+        await session.commit()
+    except IntegrityError:
+        raise DuplicatedEmailError()
     return user
