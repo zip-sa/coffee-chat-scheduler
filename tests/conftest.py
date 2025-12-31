@@ -57,6 +57,6 @@ async def host_user(db_session: AsyncSession):
         is_host=True,
     )
     db_session.add(user)
-    await db_session.commit()
     await db_session.flush()
+    await db_session.commit()
     return user
