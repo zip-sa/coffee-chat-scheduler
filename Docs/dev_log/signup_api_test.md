@@ -1,54 +1,53 @@
 # Signup API 테스트 구현 과정
 
 ## 개요
-signup API의 테스트를 구현하면서 발생한 문제들과 해결 과정을 정리한 문서입니다.
+signup API의 보안 강화 및 테스트 구현 과정에서 발생한 문제 분석과 해결 방법을 기록한 개발 로그.
 
 ---
 
-## Q1: 처음 발견한 문제는 무엇이었나?
+## 1. 문제 발견
 
-### 문제 배경
-test_signup.py를 pytest로 실행했을 때 모든 테스트가 실패했습니다.
+### 1.1 초기 상황
+`SignupPayload` 스키마 도입 후 기존 test_signup.py의 모든 테스트 실패.
 
-```
+```bash
 AttributeError: 'dict' object has no attribute 'username'
 ```
 
-### 원인
-- `endpoints.py`의 `signup` 함수가 `SignupPayload` 스키마 객체를 기대
-- 하지만 `test_signup.py`는 여전히 `dict`를 전달
-- `payload.username` 같은 속성 접근이 불가능
-
-### 해결 방향
-"test_signup.py를 수정하는 대신, 새로운 API 레벨 테스트 파일을 만들자."
+### 1.2 근본 원인
+- `endpoints.py`의 `signup` 함수: `SignupPayload` 객체 타입 기대
+- `test_signup.py`: 여전히 `dict` 타입 전달
+- 타입 불일치로 인한 속성 접근 불가
 
 ---
 
-## Q2: 왜 새로운 테스트 파일을 만들었나?
+## 2. 해결 접근 방식
 
-### 배경
-- 기존 `test_signup.py`는 함수를 직접 호출하는 **유닛 테스트**
-- HTTP API를 테스트하는 **API 테스트**가 필요했음
+### 2.1 전략 선택
+기존 유닛 테스트를 수정하는 대신, **새로운 API 레벨 테스트 파일 작성** 선택.
 
-### 해결 방법
-`test_signup_api.py` 생성:
-- `client.post("/account/signup", json=payload)` 사용
-- FastAPI가 자동으로 dict를 SignupPayload로 변환
-- 실제 HTTP 요청/응답 흐름 테스트
+**선택 이유:**
+- FastAPI의 TestClient는 자동으로 dict를 스키마 객체로 변환
+- 실제 HTTP 요청/응답 흐름 테스트 가능
+- API 계약(contract) 검증에 더 적합
 
-### 핵심 발상
-"두 가지 테스트 레벨을 분리하자"
-- `test_signup.py`: 함수 직접 호출 (유닛 테스트)
-- `test_signup_api.py`: HTTP API 호출 (API 테스트)
+### 2.2 테스트 레벨 분리
+
+| 테스트 파일 | 테스트 방법 | 검증 대상 | 상태 |
+|------------|-----------|----------|------|
+| test_signup.py | `signup(dict, session)` 직접 호출 | 함수 로직, DB 저장 | 실패 (현재) |
+| test_signup_api.py | `client.post()` HTTP 호출 | HTTP 응답, API 계약 | 통과 |
 
 ---
 
-## Q3: UserOut 스키마는 왜 필요했나?
+## 3. 보안 강화: UserOut 스키마
 
-### 문제 배경
-API 응답에 민감한 정보(email, password)가 노출되는 보안 문제
+### 3.1 보안 이슈
+API 응답에 민감한 정보(email, password)가 노출되는 문제 발견.
 
-### 해결 방법
+### 3.2 해결 방법
+응답 전용 스키마 `UserOut` 도입:
+
 ```python
 class UserOut(SQLModel):
     username: str
@@ -56,109 +55,132 @@ class UserOut(SQLModel):
     is_host: bool
 
 @router.post("/signup", response_model=UserOut)
+async def signup(payload: SignupPayload, session: DbSessionDep) -> UserOut:
+    # ...
 ```
 
-- `response_model=UserOut` 설정
-- FastAPI가 자동으로 응답을 필터링
-- username, display_name, is_host만 전송
-
-### 확인된 사실
-"UserOut은 User 모델을 위한 전송용 스키마가 맞아?"
-→ **정답: 맞습니다. API 응답 전용 스키마입니다.**
+**효과:**
+- FastAPI가 자동으로 응답 필터링
+- username, display_name, is_host만 클라이언트로 전송
+- email, password 등 민감 정보 제외
 
 ---
 
-## Q4: response_model 때문에 테스트가 충돌하지 않나?
+## 4. 테스트 구현 시 발견한 문제
 
-### 문제 발견
-`test_signup_api.py`의 두 테스트가 모순적이었습니다:
-
-1. 첫 번째 테스트: `assert data["email"] == payload["email"]` (email 기대)
-2. 두 번째 테스트: `expected_keys = ["username", "display_name", "is_host"]` (email 제외 기대)
-
-### 의문점
-"response_model을 User로 하면 첫 번째 통과, UserOut으로 하면 실패... 의도된 동작인가?"
-
-### 결론
-아니요, 테스트가 잘못되었습니다. 두 테스트가 동시에 통과할 수 없습니다.
-
----
-
-## Q5: 그럼 email, password는 어떻게 테스트하나?
-
-### 핵심 질문
-"signup API 테스트에서 password와 password_again 검증까지 포함하려면 어떻게 해야 해?"
-
-### 해결 방법
-다른 API를 활용한 **간접 검증**:
+### 4.1 테스트 케이스 모순
+초기 `test_signup_api.py`의 두 테스트가 상충하는 요구사항 검증.
 
 ```python
-# 1. 회원가입 API 호출
+# 테스트 1: email이 응답에 포함되길 기대
+assert data["email"] == payload["email"]  # X UserOut에 email 없음
+
+# 테스트 2: username, display_name, is_host만 포함되길 기대
+expected_keys = frozenset(["username", "display_name", "is_host"])
+assert response_keys == expected_keys  # O 올바른 요구사항
+```
+
+**문제:** `response_model=UserOut` 설정 시 두 테스트는 동시에 통과 불가.
+
+### 4.2 email/password 검증 딜레마
+"API 응답에서 제외한 email과 password는 어떻게 검증해야 하는가?"
+
+**해결책: 간접 검증 패턴**
+
+```python
+# 1. 회원가입 API 호출 (UserOut 응답)
 response = client.post("/account/signup", json=payload)
 assert response.status_code == status.HTTP_201_CREATED
+assert data["username"] == payload["username"]
 
-# 2. GET API로 재조회하여 DB 저장 확인
+# 2. GET API로 재조회 (User 전체 응답)
 response = client.get(f"/account/users/{payload['username']}")
-assert user_data["email"] == payload["email"]
+assert user_data["email"] == payload["email"]  # O 간접 검증
 ```
 
-### 핵심 인사이트
-- API 테스트는 **API 응답만** 검증
-- email/password 같은 내부 데이터는 **다른 엔드포인트**를 통해 간접 검증
-- 이것이 API 레벨 테스트의 올바른 방식
-- "signup API 테스트 파일인데, DB를 직접 조회할 필요가 있을까?" → **맞습니다. API 테스트는 다른 API로 간접 검증하는 것이 올바릅니다.**
+**핵심 원칙:**
+- API 테스트는 해당 API의 응답만 직접 검증
+- 내부 상태(DB 저장 여부)는 다른 엔드포인트를 통해 간접 검증
+- DB를 직접 조회하는 것은 API 테스트의 범위를 벗어남
 
 ---
 
-## Q6: test_signup.py vs test_signup_api.py 차이는?
+## 5. 최종 구현
 
-### 최종 구조
+### 5.1 테스트 커버리지
 
-| 파일 | 테스트 방법 | 검증 대상 |
-|------|------------|-----------|
-| test_signup.py | `signup(dict, session)` 직접 호출 | 함수 로직, DB 저장 (유닛) |
-| test_signup_api.py | `client.post()` HTTP 호출 | HTTP 응답, API 계약 (API) |
+**test_signup_api.py:**
+1. `test_signup_successfully`: 정상 회원가입 및 간접 검증
+2. `test_signup_password_mismatch`: password 불일치 시 422 에러
+3. `test_응답_결과에는_username_display_name_is_host_만_출력한다`: 응답 필드 검증
+
+### 5.2 개선 사항
+- API 응답 검증: UserOut 스키마 필드만 확인
+- 데이터 저장 검증: GET API를 통한 간접 확인
+- 보안 검증: 민감 정보 비노출 확인
+- 예외 케이스: password 불일치 등
 
 ---
 
-## Q7: 추가한 테스트와 개선 사항
+## 6. 의문점 및 추가 고민
 
-### 추가한 테스트
-```python
-async def test_signup_password_mismatch(client: TestClient):
-    # password != password_again 케이스
-    payload = {
-        "username": "test",
-        "email": "test@example.com",
-        "password": "test테스트1234",
-        "password_again": "다른비밀번호",
-    }
-    response = client.post("/account/signup", json=payload)
-    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+### 6.1 현재 상황
+`test_signup_api.py` 작성 후, 기존 `test_signup.py`는 모두 실패 상태.
+
+```
+7 failed in 0.10s
+- test_signup_successfully: FAILED
+- test_signup_invalid_username: FAILED (3 cases)
+- test_signup_if_id_exists: FAILED
+- test_signup_if_email_exists: FAILED
+- test_signup_no_display_name: FAILED
 ```
 
-### 개선 사항
-1. email 체크 라인 제거 (API 응답에 없음)
-2. GET API로 재조회 로직 추가 (email 간접 검증)
-3. is_host 검증 추가
-4. password 불일치 테스트 추가
+### 6.2 선택지 비교
+
+| 옵션 | 장점 | 단점 | 고려사항 |
+|-----|------|------|---------|
+| test_signup.py 수정 | 유닛/API 테스트 모두 보유 | 중복된 테스트 케이스 | 유지보수 비용 증가 |
+| test_signup.py 삭제 | 단순하고 명확한 구조 | 유닛 테스트 부재 | API 테스트만으로 충분한가? |
+| 현재 상태 유지 | 변경 없음 | 실패하는 테스트 방치 | 기술 부채 발생 |
+
+### 6.3 핵심 질문
+**"FastAPI 프로젝트에서 유닛 테스트와 API 테스트를 모두 유지하는 것이 best practice인가?"**
+
+**추가 고려사항:**
+- test_endpoints.py는 함수 직접 호출과 HTTP 호출 테스트를 모두 포함
+- 하지만 `user_detail` 엔드포인트는 `response_model` 설정이 없어서 양쪽 테스트가 동일한 응답 수신
+- `signup`은 `response_model=UserOut`으로 인해 두 테스트가 다른 응답 수신
+
+**판단 필요:**
+- 함수 로직만 테스트: test_signup.py 수정하여 SignupPayload 객체 전달
+- API 계약만 검증: test_signup.py 제거
+- 실무에서의 일반적인 접근 방식?
 
 ---
 
-## 핵심 교훈 (Key Takeaways)
+## 7. 학습 내용
 
-1. **테스트 레벨 분리**: 유닛 테스트 vs API 테스트의 명확한 구분
-2. **보안과 테스트의 균형**: response_model로 보안 확보, 다른 API로 검증
-3. **API 테스트 원칙**: API는 API로 검증 (DB 직접 조회 지양)
-4. **실용적 접근**: test_endpoints.py 패턴 참고하여 일관된 테스트 작성
+### 7.1 테스트 설계 원칙
+1. **테스트 레벨 명확화**: 유닛 vs 통합 vs API 테스트 구분
+2. **간접 검증 패턴**: API 테스트에서 다른 엔드포인트 활용
+3. **보안과 테스트의 균형**: response_model로 보안 확보, 간접 검증으로 커버리지 유지
 
-이 과정을 통해 **"API 레벨에서 무엇을, 어떻게 테스트할 것인가"**에 대한 명확한 기준을 세웠습니다.
+### 7.2 FastAPI 특성 이해
+1. TestClient의 자동 스키마 변환
+2. response_model을 통한 자동 필터링
+3. Pydantic 검증과 HTTP 422 응답
+
+### 7.3 실용적 교훈
+- 기존 코드 패턴(`test_endpoints.py`) 참고의 중요성
+- 테스트 케이스 간 요구사항 일관성 확인 필요
+- 테스트 실패 이유를 명확히 이해하고 접근
 
 ---
 
 ## 참고 파일
-- `/tests/apps/account/test_signup.py` - 유닛 테스트
-- `/tests/apps/account/test_signup_api.py` - API 테스트
+- `/tests/apps/account/test_signup.py` - 유닛 테스트 (현재 실패 상태)
+- `/tests/apps/account/test_signup_api.py` - API 테스트 (통과)
 - `/tests/apps/account/test_endpoints.py` - 참고한 테스트 패턴
-- `/appserver/apps/account/endpoints.py` - signup 엔드포인트
+- `/appserver/apps/account/endpoints.py` - signup 엔드포인트 구현
 - `/appserver/apps/account/schemas.py` - SignupPayload, UserOut 스키마
