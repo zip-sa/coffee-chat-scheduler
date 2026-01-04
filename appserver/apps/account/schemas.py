@@ -25,3 +25,8 @@ class SignupPayload(SQLModel):
             data["display_name"] = "".join(random.choices(string.ascii_letters+string.digits, k=8))
         return data
     
+
+class UserOut(SQLModel):
+    username: str
+    display_name: str
+    is_host: bool
