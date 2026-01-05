@@ -1,4 +1,6 @@
+from sys import is_stack_trampoline_active
 from fastapi import APIRouter, HTTPException, status
+from sqlalchemy import JSON
 from sqlmodel import select, func, SQLModel
 from sqlalchemy.exc import IntegrityError
 from .exceptions import DuplicatedUsernameError, DuplicatedEmailError
@@ -7,6 +9,17 @@ from appserver.db import DbSessionDep, create_async_engine, create_session
 from .models import User
 
 from .schemas import SignupPayload, UserOut
+
+from .exceptions import PasswordMismatchError, UserNotFoundError
+from .schemas import SignupPayload, UserOut, LoginPayload
+from .utils import (
+    verify_password,
+    create_access_token,
+    ACCESS_TOKEN_EXPIRE_MINUTES
+)
+from datetime import datetime, timezone, timedelta
+from fastapi.responses import JSONResponse
+
 
 router = APIRouter(prefix="/account")
 
@@ -37,3 +50,45 @@ async def signup(payload: SignupPayload, session: DbSessionDep) -> UserOut:
     except IntegrityError:
         raise DuplicatedEmailError()
     return user
+
+
+@router.post("/login", status_code=status.HTTP_200_OK)
+async def login(payload: LoginPayload, session: DbSessionDep) -> User:
+    stmt = select(User).where(User.username == payload.username)
+    result = await session.execute(stmt)
+    user = result.scalar_one_or_none()
+
+    if user is None:
+        raise UserNotFoundError()
+    
+    is_valid = verify_password(payload.password, user.hashed_password)
+    if not is_valid:
+        raise PasswordMismatchError
+
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={
+            "sub": user.username,
+            "display_name": user.display_name,
+            "is_host": user.is_host,
+        },
+        expires_delta = access_token_expires
+    )
+    response_data = {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "user": user.model_dump(mode="json", exclude={"hashed_password", "email"})
+    }
+
+    now = datetime.now(timezone.utc)
+
+    res = JSONResponse(response_data, status_code=status.HTTP_200_OK)
+    res.set_cookie(
+        key="auth_token",
+        value=access_token,
+        expires=now + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
+        httponly=True,
+        secure=True,
+        samesite="strict"
+    )
+    return res

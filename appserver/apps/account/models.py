@@ -22,9 +22,9 @@ class User(SQLModel, table=True):
 
     id: int = Field(default=None, primary_key=True)
     username: str = Field(unique=True, min_length=4, max_length=40, description="User Account ID")
-    email: EmailStr = Field(max_length=128, description="User Email Address")
+    email: EmailStr = Field(unique=True, max_length=128, description="User Email Address")
     display_name: str = Field(min_length=4, max_length=40, description="User Display Name")
-    password: str = Field(min_length=8, max_length=128, description="User Password")
+    hashed_password: str = Field(min_length=8, max_length=128, description="User Password")
     is_host: bool = Field(default=False, description="Check Host")
 
     oauth_accounts: list["OAuthAccount"] = Relationship(back_populates="user")
