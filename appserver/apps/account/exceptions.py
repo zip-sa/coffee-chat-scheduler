@@ -29,3 +29,21 @@ class PasswordMismatchError(HTTPException):
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Wrong Password",
         )
+
+
+class InvalidTokenError(HTTPException):
+    def __init__(self):
+        super().__init__(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid Token",
+            headers={"WW-Authenticate": "Bearer"},
+        )
+
+
+class ExpiredTokenError(HTTPException):
+    def __init__(self):
+        super().__init__(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Expired Token",
+            headers={"WW-Authenticate", "Bearer"},
+        )

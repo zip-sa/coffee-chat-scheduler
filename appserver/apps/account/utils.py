@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta, timezone
 from typing import Any, Union
+from fastapi import Security
 from jose import jwt
 from pwdlib import PasswordHash
 from pwdlib.hashers.argon2 import Argon2Hasher
@@ -32,3 +33,6 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     password_hasher = PasswordHash((Argon2Hasher(), BcryptHasher()))
     return password_hasher.verify(plain_password, hashed_password)
 
+
+def decode_token(token: str) -> dict:
+    return jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
