@@ -6,11 +6,11 @@ async def test_signup_successfully(client: TestClient):
     payload = {
         "username": "test",
         "email": "test@example.com",
-        "password": "test테스트1234",
-        "password_again": "test테스트1234",
+        "password": "testTest1234",
+        "password_again": "testTest1234",
     }
 
-    # 회원가입 API 호출
+    # Call signup API
     response = client.post("/account/signup", json=payload)
 
     data = response.json()
@@ -20,7 +20,7 @@ async def test_signup_successfully(client: TestClient):
     assert len(data["display_name"]) == 8
     assert data["is_host"] is False
 
-    # GET API로 재조회하여 실제로 저장되었는지 확인
+    # Verify saved by re-querying with GET API
     response = client.get(f"/account/users/{payload['username']}")
     assert response.status_code == status.HTTP_200_OK
     user_data = response.json()
@@ -33,21 +33,21 @@ async def test_signup_password_mismatch(client: TestClient):
     payload = {
         "username": "test",
         "email": "test@example.com",
-        "password": "test테스트1234",
-        "password_again": "다른비밀번호",
+        "password": "testTest1234",
+        "password_again": "differentPassword",
     }
 
     response = client.post("/account/signup", json=payload)
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
     
 
-async def test_응답_결과에는_username_display_name_is_host_만_출력한다(client: TestClient):
+async def test_response_contains_only_username_display_name_is_host(client: TestClient):
     payload = {
         "username": "zipsa",
-        "display_name": "집사입니다.",
+        "display_name": "zipsahere",
         "email": "test@example.com",
-        "password": "test테스트1234",
-        "password_again": "test테스트1234",
+        "password": "testTest1234",
+        "password_again": "testTest1234",
     }
 
     response = client.post("/account/signup", json=payload)

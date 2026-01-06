@@ -12,7 +12,7 @@ async def test_signup_successfully(client: TestClient, db_session: AsyncSession)
         "username": "test",
         "email": "test@example.com",
         "display_name": "test",
-        "password": "test테스트1234",
+        "password": "testTest1234",
     }
 
     result = await signup(payload, db_session)
@@ -46,7 +46,7 @@ async def test_signup_invalid_username(client: TestClient, db_session: AsyncSess
         "username": username,
         "email": "test@example.com",
         "display_name": "test",
-        "password": "test테스트1234",
+        "password": "testTest1234",
     }
     with pytest.raises(ValidationError) as exc:
         await signup(payload, db_session)
@@ -57,9 +57,9 @@ async def test_signup_if_id_exists(db_session: AsyncSession):
         "username": "test",
         "email": "test@example.com",
         "display_name": "test",
-        "password": "test테스트1234",
+        "password": "testTest1234",
     }
-    await signup(payload, db_session) 
+    await signup(payload, db_session)
 
     payload["email"] = "test2@example.com"
     with pytest.raises(DuplicatedUsernameError) as exc:
@@ -71,7 +71,7 @@ async def test_signup_if_email_exists(db_session: AsyncSession):
         "username": "test",
         "email": "test@example.com",
         "display_name": "test",
-        "password": "test테스트1234",
+        "password": "testTest1234",
     }
     await signup(payload, db_session)
 
@@ -84,7 +84,7 @@ async def test_signup_no_display_name(client: TestClient, db_session: AsyncSessi
     payload = {
         "username": "test",
         "email": "test@example.com",
-        "password": "test테스트1234",
+        "password": "testTest1234",
     }
     user = await signup(payload, db_session)
     assert isinstance(user.display_name, str)

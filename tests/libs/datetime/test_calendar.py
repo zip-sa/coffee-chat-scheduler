@@ -26,16 +26,16 @@ def test_get_last_day_of_month(year, month, expected):
     assert get_last_day_of_month(year, month) == expected
 
 @pytest.mark.parametrize("year, month, expected_padding_count, expected_total_count", [
-    # 2024년 3월: 금요일(5)에 시작, 31일까지
+    # 2024 March: Starts on Friday(5), 31 days
     (2024, 3, 5, 36),
-    # 2024년 2월: 목요일(4)에 시작, 윤년으로 29일까지
+    # 2024 February: Starts on Thursday(4), leap year 29 days
     (2024, 2, 4, 33),
-    # 2025년 2월: 토요일(6)에 시작, 28일까지
+    # 2025 February: Starts on Saturday(6), 28 days
     (2025, 2, 6, 34),
-    # 2024년 4월: 월요일(1)에 시작, 30일까지
+    # 2024 April: Starts on Monday(1), 30 days
     (2024, 4, 1, 31),
-    # 2024년 12월: 일요일(0)에 시작, 31일까지
-    (2024, 12, 0, 31), 
+    # 2024 December: Starts on Sunday(0), 31 days
+    (2024, 12, 0, 31),
 ])
 
 def test_get_range_days_of_month(year, month, expected_padding_count,
