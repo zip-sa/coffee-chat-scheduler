@@ -1,17 +1,15 @@
 from sys import is_stack_trampoline_active
 from fastapi import APIRouter, HTTPException, status
 from sqlalchemy import JSON
-from sqlmodel import select, func, SQLModel
+from sqlmodel import select, func, update
 from sqlalchemy.exc import IntegrityError
 from .exceptions import DuplicatedUsernameError, DuplicatedEmailError
 
 from appserver.db import DbSessionDep, create_async_engine, create_session
 from .models import User
 
-from .schemas import SignupPayload, UserOut
-
 from .exceptions import PasswordMismatchError, UserNotFoundError
-from .schemas import SignupPayload, UserOut, LoginPayload
+from .schemas import SignupPayload, UserOut, LoginPayload, UpdateUserPayload
 from .utils import (
     verify_password,
     create_access_token,
@@ -38,6 +36,7 @@ async def user_detail(username: str, session: DbSessionDep) -> User:
         return user
 
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
 
 @router.post("/signup", status_code=status.HTTP_201_CREATED, response_model=UserOut)
 async def signup(payload: SignupPayload, session: DbSessionDep) -> UserOut:
@@ -100,4 +99,18 @@ async def login(payload: LoginPayload, session: DbSessionDep) -> User:
 
 @router.get("/@me", response_model=UserDetailOut)
 async def me(user: CurrentUserDep) -> User:
+    return user
+
+
+@router.patch("/@me", response_model=UserDetailOut)
+async def update_user(
+    user: CurrentUserDep,
+    payload: UpdateUserPayload,
+    session: DbSessionDep
+) -> User:
+    updated_data = payload.model_dump(exclude_none=True, exclude={"password", "password_again"})
+
+    stmt = update(User).where(User.username == user.username).values(**updated_data)
+    await session.execute(stmt)
+    await session.commit()
     return user
