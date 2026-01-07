@@ -319,7 +319,7 @@ flowchart TD
     Validate -->|아니오| Error[422 Error<br/>Password Not Matched]
     Error --> End([종료])
 
-    Validate -->|예| ComputedField[@computed_field<br/>hashed_password]
+    Validate -->|예| ComputedField[computed_field 실행<br/>hashed_password]
     ComputedField --> HashFunc[hash_password 호출]
     HashFunc --> Argon2[Argon2 해싱]
     Argon2 --> Bcrypt[Bcrypt 해싱]
