@@ -1,7 +1,7 @@
 from sys import is_stack_trampoline_active
 from fastapi import APIRouter, HTTPException, status
 from sqlalchemy import JSON
-from sqlmodel import select, func, update
+from sqlmodel import select, func, update, delete
 from sqlalchemy.exc import IntegrityError
 from websockets import StatusLike
 from .exceptions import DuplicatedUsernameError, DuplicatedEmailError
@@ -122,3 +122,11 @@ async def logout(user: CurrentUserDep) -> JSONResponse:
     res = JSONResponse({})
     res.delete_cookie(AUTH_TOKEN_COOKIE_NAME)
     return res
+
+
+@router.delete("/unregister", status_code=status.HTTP_204_NO_CONTENT)
+async def unregister(user: CurrentUserDep, session: DbSessionDep) -> None:
+    stmt = delete(User).where(User.username == user.username)
+    await session.execute(stmt)
+    await session.commit()
+    return None
