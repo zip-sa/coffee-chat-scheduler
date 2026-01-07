@@ -3,6 +3,7 @@ from fastapi import APIRouter, HTTPException, status
 from sqlalchemy import JSON
 from sqlmodel import select, func, update
 from sqlalchemy.exc import IntegrityError
+from websockets import StatusLike
 from .exceptions import DuplicatedUsernameError, DuplicatedEmailError
 
 from appserver.db import DbSessionDep, create_async_engine, create_session
@@ -114,3 +115,10 @@ async def update_user(
     await session.execute(stmt)
     await session.commit()
     return user
+
+
+@router.delete("/logout", status_code=status.HTTP_200_OK)
+async def logout(user: CurrentUserDep) -> JSONResponse:
+    res = JSONResponse({})
+    res.delete_cookie(AUTH_TOKEN_COOKIE_NAME)
+    return res
