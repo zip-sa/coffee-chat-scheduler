@@ -10,6 +10,7 @@ from appserver.apps.calendar import models as calendar_models
 from sqlmodel import SQLModel
 from appserver.apps.account.utils import hash_password
 from appserver.apps.account.schemas import LoginPayload
+from appserver.apps.calendar import models as calendar_models
 
 
 @pytest.fixture(autouse=True)
@@ -82,3 +83,33 @@ def client_with_auth(fastapi_app: FastAPI, host_user: account_models.User):
 
         client.cookies["auth_token"] = auth_token
         yield client
+
+
+@pytest.fixture()
+async def guest_user(db_session: AsyncSession):
+    user = account_models.User(
+        username="zipsacafe",
+        hashed_password=hash_password("testtest"),
+        email="zipsacafe@example.com",
+        display_name="ZIPSAoCAFE",
+        is_host=False,
+    )
+    db_session.add(user)
+    await db_session.flush()
+    await db_session.commit()
+    return user
+
+
+@pytest.fixture()
+async def host_user_calendar(db_session: AsyncSession, host_user: account_models.User):
+    calendar = calendar_models.Calendar(
+        host_id=host_user.id,
+        description="zipsa calendar here",
+        topics=["zipsa talk", "zipsa talk2"],
+        google_calendar_id="1234567890",
+    )
+    db_session.add(calendar)
+    await db_session.flush()
+    await db_session.commit()
+    await db_session.refresh(host_user)
+    return calendar
