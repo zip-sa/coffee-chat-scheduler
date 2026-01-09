@@ -1,4 +1,3 @@
-from math import exp
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 from appserver.apps.account.models import User
@@ -55,4 +54,3 @@ async def test_raise_calendar_not_found_error_for_not_host_user(
 ) -> None:
     with pytest.raises(CalendarNotFoundError):
         await host_calendar_detail(guest_user.username, None, db_session)
-        
