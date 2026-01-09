@@ -5,6 +5,7 @@ from appserver.apps.account.models import User
 from appserver.apps.calendar.models import Calendar
 from appserver.apps.calendar.schemas import CalendarDetailOut, CalendarOut
 from appserver.apps.calendar.endpoints import host_calendar_detail
+from appserver.apps.calendar.exceptions import HostNotFoundError
 
 
 @pytest.mark.parametrize("user_key, expected_type", [
@@ -39,3 +40,10 @@ async def test_get_calendar_info_from_host_user(
     assert result.description == host_user_calendar.description
     if isinstance(result, CalendarDetailOut):
         assert result.google_calendar_id == host_user_calendar.google_calendar_id
+
+
+async def test_raise_host_not_found_error_for_nonexistent_user(
+        db_session: AsyncSession,
+) -> None:
+    with pytest.raises(HostNotFoundError):
+        await host_calendar_detail("not_exist_user", None, db_session)

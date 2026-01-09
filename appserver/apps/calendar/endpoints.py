@@ -6,6 +6,7 @@ from appserver.apps.calendar.models import Calendar
 from appserver.db import DbSessionDep
 from appserver.apps.account.deps import CurrentUserOptionalDep
 from .schemas import CalendarDetailOut, CalendarOut
+from .exceptions import HostNotFoundError
 
 
 async def host_calendar_detail(
@@ -17,6 +18,8 @@ async def host_calendar_detail(
     stmt = select(User).where(User.username == host_username)
     result = await session.execute(stmt)
     host = result.scalar_one_or_none()
+    if host is None:
+        raise HostNotFoundError()
 
     stmt = select(Calendar).where(Calendar.host_id == host.id)
     result = await session.execute(stmt)
