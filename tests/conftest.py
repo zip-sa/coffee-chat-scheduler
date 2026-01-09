@@ -113,3 +113,22 @@ async def host_user_calendar(db_session: AsyncSession, host_user: account_models
     await db_session.commit()
     await db_session.refresh(host_user)
     return calendar
+
+
+@pytest.fixture()
+def client_with_guest_auth(fastapi_app: FastAPI, guest_user: account_models.User):
+    payload = LoginPayload.model_validate({
+        "username": guest_user.username,
+        "password": "testtest",
+    })
+
+    with TestClient(fastapi_app) as client:
+        response = client.post("/account/login", json=payload.model_dump())
+        assert response.status_code == status.HTTP_200_OK
+
+        auth_token = response.cookies.get("auth_token")
+        assert auth_token is not None
+
+        client.cookies.set("auth_token", auth_token)
+        yield client
+        
