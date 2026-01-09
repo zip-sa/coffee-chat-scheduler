@@ -20,7 +20,7 @@ async def get_user(auth_token: str| None, db_session: AsyncSession) -> User | No
     except Exception as e:
         raise InvalidTokenError() from e
     
-    expires_at = datetime.fromtimestamp(decoded["exe"], tz=timezone.utc)
+    expires_at = datetime.fromtimestamp(decoded["exp"], tz=timezone.utc)
     now = datetime.now(timezone.utc)
     if now + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES) < expires_at:
         raise ExpiredTokenError()
