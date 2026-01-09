@@ -6,7 +6,7 @@ from appserver.apps.account.models import User
 from appserver.apps.calendar.models import Calendar
 from appserver.db import DbSessionDep
 from appserver.apps.account.deps import CurrentUserDep, CurrentUserOptionalDep
-from .schemas import CalendarCreateIn, CalendarDetailOut, CalendarOut
+from .schemas import CalendarCreateIn, CalendarDetailOut, CalendarOut, CalendarUpdateIn
 from .exceptions import CalendarNotFoundError, HostNotFoundError, CalendarAlreadyExistsError, GuestPermissionError
 
 
@@ -60,3 +60,33 @@ async def create_calendar(
     except IntegrityError as exc:
         raise CalendarAlreadyExistsError() from exc
     return calendar
+
+
+@router.patch(
+    "/calendar",
+    status_code=status.HTTP_200_OK,
+    response_model=CalendarDetailOut,
+)
+async def update_calendar(
+    user: CurrentUserDep,
+    session: DbSessionDep,
+    payload: CalendarUpdateIn
+) -> CalendarDetailOut:
+    if not user.is_host:
+        raise GuestPermissionError()
+    
+    if user.calendar is None:
+        raise CalendarNotFoundError()
+    
+    if payload.topics is not None:
+        user.calendar.topics = payload.topics
+
+    if payload.description is not None:
+        user.calendar.description = payload.description
+
+    if payload.google_calendar_id is not None:
+        user.calendar.google_calendar_id = payload.google_calendar_id
+
+    await session.commit()
+
+    return user.calendar

@@ -6,6 +6,7 @@ from appserver.apps.account.models import User
 from appserver.apps.calendar.models import Calendar
 from appserver.apps.calendar.schemas import CalendarDetailOut, CalendarOut
 from appserver.apps.calendar.endpoints import host_calendar_detail
+from appserver.libs.collections.sort import deduplicate_and_sort
 
 
 @pytest.mark.parametrize("user_key, expected_type", [
@@ -103,3 +104,38 @@ async def test_returns_403_when_guest_user_create_calendar(
 
     response = client_with_guest_auth.post("/calendar", json=payload)
     assert response.status_code == status.HTTP_403_FORBIDDEN
+
+
+UPDATABLE_FIELDS = frozenset(["topics", "description", "google_calendar_id"])
+
+@pytest.mark.parametrize("payload", [
+    {"topics": ["topic2", "topic1", "topic2"]},
+    {"description": "Description text length over 10"},
+    {"google_calendar_id": "invalid_google_calendar_id@group.calendar.google.com"},
+
+    {"topics": ["topic2", "topic1", "topic2"], 
+     "description": "Description text length over 10", 
+     "google_calendar_id": "invalid_google_calendar_id@group.calendar.google.com"}
+])
+async def test_only_update_values_by_user_changed(
+    client_with_auth: TestClient,
+    host_user_calendar: Calendar,
+    payload: dict,
+) -> None:
+    before_data = host_user_calendar.model_dump()
+
+    response = client_with_auth.patch("/calendar", json=payload)
+    assert response.status_code == status.HTTP_200_OK
+
+    response = client_with_auth.get(f"/calendar/{host_user_calendar.host.username}")
+    data = response.json()
+
+    for key, value in payload.items():
+        if key == "topics":
+            assert data[key] == deduplicate_and_sort(value)
+        else:
+            assert data[key] == value
+
+    for key in UPDATABLE_FIELDS - frozenset(payload.keys()):
+        assert data[key] == before_data[key]
+        
