@@ -10,7 +10,7 @@ from .exceptions import CalendarNotFoundError, HostNotFoundError
 
 
 router = APIRouter()
-
+@router.get("/calendar/{host_username}", status_code=status.HTTP_200_OK)
 
 async def host_calendar_detail(
         host_username: str,
