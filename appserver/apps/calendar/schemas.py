@@ -1,7 +1,8 @@
 from typing import Annotated
-from pydantic import AfterValidator, AwareDatetime, EmailStr
+from pydantic import AfterValidator, AwareDatetime, EmailStr, model_validator
 from sqlmodel import SQLModel, Field
 from appserver.libs.collections.sort import deduplicate_and_sort
+from datetime import time
 
 
 class CalendarOut(SQLModel):
@@ -39,4 +40,32 @@ class CalendarUpdateIn(SQLModel):
         min_length=20,
         description="Google Calendar ID",
         )
+
+ 
+def validate_weekdays(weekdays: list[int]) -> list[int]:
+    weekday_range = range(7)
+    for weekday in weekdays:
+        if weekday not in weekday_range:
+            raise ValueError(f"Weekday value must be between 0 and 6. Got: {weekday}")
+    return weekdays
     
+Weekdays = Annotated[list[int], AfterValidator(validate_weekdays)]
+
+
+class TimeSlotCreateIn(SQLModel):
+    start_time: time
+    end_time: time
+    weekdays: Weekdays
+    @model_validator(mode="after")
+    def validate_time_slot(self):
+        if self.start_time >= self.end_time:
+            raise ValueError("Start time must be earlier than end time.")
+        return self
+
+
+class TimeSlotOut(SQLModel):
+    start_time: time
+    end_time: time
+    weekdays: Weekdays
+    created_at: AwareDatetime
+    updated_at: AwareDatetime
