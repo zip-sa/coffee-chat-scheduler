@@ -39,3 +39,12 @@ class TimeSlotOverlapError(HTTPException):
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="Overlapping timeslot already exists."
         )
+
+
+class TimeSlotNotFoundError(HTTPException):
+    def __init__(self):
+        super().__init__(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Time slot not found."
+        )
+        
