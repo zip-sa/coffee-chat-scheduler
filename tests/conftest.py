@@ -1,4 +1,6 @@
 import pytest
+import calendar
+from datetime import time
 from fastapi import FastAPI, status
 from fastapi.testclient import TestClient
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -132,3 +134,18 @@ def client_with_guest_auth(fastapi_app: FastAPI, guest_user: account_models.User
         client.cookies.set("auth_token", auth_token)
         yield client
         
+
+@pytest.fixture()
+async def time_slot_tuesday(
+    db_session: AsyncSession,
+    host_user_calendar: calendar_models.Calendar,
+):
+    time_slot = calendar_models.TimeSlot(
+        start_time=time(9,0),
+        end_time=time(10,0),
+        weekdays=[calendar.TUESDAY],
+        calendar_id=host_user_calendar.id,
+    )
+    db_session.add(time_slot)
+    await db_session.commit()
+    return time_slot
