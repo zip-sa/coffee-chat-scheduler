@@ -149,3 +149,18 @@ async def time_slot_tuesday(
     db_session.add(time_slot)
     await db_session.commit()
     return time_slot
+
+
+@pytest.fixture()
+async def cute_guest_user(db_session: AsyncSession):
+    user = account_models.User(
+        username="cute_guest",
+        hashed_password=hash_password("testtest"),
+        email="cute_guest@example.com",
+        display_name="im cute guest",
+        is_host=False,
+    )
+    db_session.add(user)
+    await db_session.flush()
+    await db_session.commit()
+    return user
