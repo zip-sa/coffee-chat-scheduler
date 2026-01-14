@@ -1,7 +1,6 @@
 import calendar
 from fastapi import APIRouter, status
-from sqlmodel import select
-from sqlalchemy import and_
+from sqlmodel import select, and_, func, true
 from sqlalchemy.exc import IntegrityError
 from appserver.apps.account.models import User
 from appserver.apps.calendar.models import Calendar, TimeSlot, Booking
@@ -142,6 +141,17 @@ async def create_booking(
     session: DbSessionDep,
     payload: BookingCreateIn
 ) -> BookingOut:
+    
+    stmt = (
+        select(User)
+        .where(User.username == host_username)
+        .where(User.is_host.is_(true()))
+    )
+    result = await session.execute(stmt)
+    host = result.scalar_one_or_none()
+    if host is None or host.calendar is None:
+        raise HostNotFoundError()
+
     booking = Booking(
         guest_id=user.id,
         when=payload.when,
