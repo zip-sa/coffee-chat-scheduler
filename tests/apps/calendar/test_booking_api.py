@@ -78,4 +78,23 @@ async def test_create_reservation_with_nonexistent_time_slot_returns_http_404(
     response = client_with_guest_auth.post(f"/bookings/{host_user.username}", json=payload)
 
     assert response.status_code == status.HTTP_404_NOT_FOUND
-    
+
+
+@pytest.mark.usefixtures("host_user_calendar")
+async def test_host_cannot_book_own_calendar(
+    host_user: User,
+    client_with_auth: TestClient,
+    time_slot_tuesday: TimeSlot,
+):
+    target_date = date(2024, 12, 3)
+    payload = {
+        "when": target_date.isoformat(),
+        "topic": "self booking test",
+        "description": "host tries to book own calendar",
+        "time_slot_id": time_slot_tuesday.id,
+    }
+
+    response = client_with_auth.post(f"/bookings/{host_user.username}", json=payload)
+
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    assert response.json()["detail"] == "Cannot book your own calendar."

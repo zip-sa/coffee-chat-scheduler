@@ -8,7 +8,7 @@ from appserver.apps.calendar.models import Calendar, TimeSlot, Booking
 from appserver.db import DbSessionDep
 from appserver.apps.account.deps import CurrentUserDep, CurrentUserOptionalDep
 from .schemas import CalendarCreateIn, CalendarDetailOut, CalendarOut, CalendarUpdateIn, TimeSlotCreateIn, TimeSlotOut, BookingCreateIn, BookingOut
-from .exceptions import CalendarNotFoundError, HostNotFoundError, CalendarAlreadyExistsError, GuestPermissionError, TimeSlotOverlapError, TimeSlotNotFoundError
+from .exceptions import CalendarNotFoundError, HostNotFoundError, CalendarAlreadyExistsError, GuestPermissionError, TimeSlotOverlapError, TimeSlotNotFoundError, SelfBookingError
 
 
 router = APIRouter()
@@ -152,6 +152,9 @@ async def create_booking(
     host = result.scalar_one_or_none()
     if host is None or host.calendar is None:
         raise HostNotFoundError()
+
+    if user.id == host.id:
+        raise SelfBookingError()
 
     stmt = (
         select(TimeSlot)

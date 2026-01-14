@@ -47,4 +47,11 @@ class TimeSlotNotFoundError(HTTPException):
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Time slot not found."
         )
-        
+
+
+class SelfBookingError(HTTPException):
+    def __init__(self):
+        super().__init__(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Cannot book your own calendar."
+        )
