@@ -2,7 +2,7 @@ from typing import Annotated
 from pydantic import AfterValidator, AwareDatetime, EmailStr, model_validator
 from sqlmodel import SQLModel, Field
 from appserver.libs.collections.sort import deduplicate_and_sort
-from datetime import time
+from datetime import time, date
 
 
 class CalendarOut(SQLModel):
@@ -67,5 +67,22 @@ class TimeSlotOut(SQLModel):
     start_time: time
     end_time: time
     weekdays: Weekdays
+    created_at: AwareDatetime
+    updated_at: AwareDatetime
+
+
+class BookingCreateIn(SQLModel):
+    when: date
+    topic: str
+    description: str
+    time_slot_id: int
+
+
+class BookingOut(SQLModel):
+    id: int
+    when: date
+    topic: str
+    description: str
+    time_slot: TimeSlotOut
     created_at: AwareDatetime
     updated_at: AwareDatetime
