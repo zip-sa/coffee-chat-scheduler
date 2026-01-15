@@ -55,3 +55,11 @@ class SelfBookingError(HTTPException):
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="Cannot book your own calendar."
         )
+
+
+class PastBookingError(HTTPException):
+    def __init__(self):
+        super().__init__(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Cannot book past day."
+        )
