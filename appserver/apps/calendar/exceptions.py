@@ -63,3 +63,11 @@ class PastBookingError(HTTPException):
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="Cannot book past day."
         )
+
+
+class BookingAlreadyExistsError(HTTPException):
+    def __init__(self):
+        super().__init__(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="The time slot is already booked."
+        )
