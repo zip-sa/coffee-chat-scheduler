@@ -76,11 +76,16 @@ from datetime import date, timedelta
 
 def get_next_weekday(weekday: int, start_date: date = None) -> date:
     """
-    주어진 날짜를 기준으로 가장 가까운 요일의 날짜를 반환합니다.
-    만약 주어진 날짜가 없으면 오늘 날짜를 기준으로 합니다.
+    Returns the nearest date that matches the given weekday,
+    based on the provided start date.
 
-    :param start_date: 기준 날짜 (기본값: 오늘)
-    :return: 가장 가까운 요일의 날짜
+    If no start date is given, today’s date is used as the reference.
+    If the start date already falls on the given weekday,
+    the start date itself is returned.
+
+    :param weekday: Target weekday (0=Monday, 6=Sunday)
+    :param start_date: Reference date (default: today)
+    :return: The nearest date matching the given weekday
 
     >>> import calendar
     >>> from datetime import date
