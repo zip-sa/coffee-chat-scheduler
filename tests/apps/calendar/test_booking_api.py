@@ -111,3 +111,21 @@ async def test_geust_cannot_book_past(
     )
 
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+
+async def test_duplicate_booking_request_returns_http_422(
+        host_user: User,
+        client_with_guest_auth: TestClient,
+        valid_booking_payload: dict,
+):
+    reponse = client_with_guest_auth.post(
+        f"/bookings/{host_user.username}",
+        json=valid_booking_payload,
+    )
+    assert reponse.status_code == status.HTTP_201_CREATED
+
+    reponse = client_with_guest_auth.post(
+        f"/bookings/{host_user.username}",
+        json=valid_booking_payload,
+    )
+    assert reponse.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
